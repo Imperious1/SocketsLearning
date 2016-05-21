@@ -19,7 +19,7 @@ class ServerThread extends Thread {
     private Socket clientSocket = null;
     private BufferedReader in = null;
     private int id = Singleton.getThreads().size();
-    private static final int ERROR = -1028310479;
+    private UserModelC umc = null;
 
     ServerThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -32,39 +32,53 @@ class ServerThread extends Thread {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
-                UserModelC umc = fromJson(inputLine.trim());
+                umc = fromJson(inputLine.trim());
                 if (umc.isRegistration()) {
-                    UserModel mc = new UserModel().setClientConnection(clientSocket).setUserName(umc.getUserName()).setName(umc.getName());
-                    Singleton.addToList(mc);
-                    System.out.println(Singleton.getThreads().size());
-                    System.out.println(umc.getUserName() + " connected");
+                    tempRegister();
                 } else if (umc.getMessage().equals("exit")) {
-                    System.out.println(Singleton.getThreads().get(id).getUserName() + " disconnected");
-                    Singleton.removeFromList(String.valueOf(id));
-                    closeConnection();
+                    exit();
                     break;
                 } else if (umc.getMessage().startsWith("@")) {
-                    new Thread(() -> {
-                        for (UserModel m : Singleton.getThreads()) {
-                            if (umc.getMessage().contains(m.getName())) {
-                                try {
-                                    new PrintWriter(m.getClientConnection().getOutputStream(), true).println(umc.getMessage().replace("@" + m.getName(), "").trim());
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    }).start();
-                } else if(umc.getMessageTo().equals("1")) {
-                    for(UserModel m : Singleton.getThreads()) {
-                        if(!Objects.equals(m.getName(), umc.getName()))
-                        new PrintWriter(m.getClientConnection().getOutputStream(), true).println(umc.getName() + ": " + umc.getMessage());
+                    writeInNewThread().start();
+                } else if (umc.getMessageTo().equals("1")) {
+                    for (UserModel m : Singleton.getThreads()) {
+                        if (!Objects.equals(m.getName(), umc.getName()))
+                            new PrintWriter(m.getClientConnection().getOutputStream(), true).println(umc.getName() + ": " + umc.getMessage());
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private Thread writeInNewThread() {
+        return new Thread(() -> {
+            for (UserModel m : Singleton.getThreads()) {
+                if (umc.getMessage().contains(m.getName())) {
+                    try {
+                        new PrintWriter(m.getClientConnection().getOutputStream(), true).println(umc.getMessage().replace("@" + m.getName(), "").trim());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+    }
+
+    private void tempRegister() {
+        Singleton.addToList(new UserModel()
+                .setClientConnection(clientSocket)
+                .setUserName(umc.getUserName())
+                .setName(umc.getName()));
+        System.out.println(Singleton.getThreads().size());
+        System.out.println(umc.getUserName() + " connected");
+    }
+
+    private void exit() throws IOException {
+        System.out.println(Singleton.getThreads().get(id).getUserName() + " disconnected");
+        Singleton.removeFromList(String.valueOf(id));
+        closeConnection();
     }
 
     private void closeConnection() throws IOException {

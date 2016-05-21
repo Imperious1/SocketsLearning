@@ -11,6 +11,7 @@ import java.net.Socket;
 class CReceiveThread extends Thread {
 
     private Socket clientConnection = null;
+    private BufferedReader br = null;
 
     CReceiveThread(Socket clientConnection) {
         this.clientConnection = clientConnection;
@@ -19,13 +20,11 @@ class CReceiveThread extends Thread {
     @Override
     public void run() {
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(clientConnection.getInputStream()));
+            br = new BufferedReader(new InputStreamReader(clientConnection.getInputStream()));
             String inputReceived;
-            while((inputReceived = br.readLine()) != null) {
-                if(inputReceived.equals("-1028310479")) {
-                    br.close();
-                    clientConnection.close();
-                    System.exit(0);
+            while ((inputReceived = br.readLine()) != null) {
+                if (inputReceived.equals("-1028310479")) {
+                    closeConnections();
                 } else {
                     System.out.println(inputReceived);
                 }
@@ -35,4 +34,11 @@ class CReceiveThread extends Thread {
             System.exit(1);
         }
     }
+
+    private void closeConnections() throws IOException {
+        br.close();
+        clientConnection.close();
+        System.exit(0);
+    }
+
 }

@@ -10,7 +10,7 @@ public class UserModelC {
     private String name;
     private boolean isRegistration;
 
-    public static UserModelC Builder(){
+    public static UserModelC Builder() {
         return new UserModelC();
     }
 

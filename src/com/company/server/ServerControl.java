@@ -11,31 +11,41 @@ import java.io.PrintWriter;
  * Created by blaze on 5/21/2016.
  */
 class ServerControl extends Thread {
+
+    private String input = null;
+
     @Override
     public void run() {
         BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-        String input;
         try {
-            while((input = stdIn.readLine()) != null) {
-                if(input.equals("killall")) {
-                    for(UserModel m : Singleton.getThreads()) {
-                        synchronized (this) {
-                            new PrintWriter(m.getClientConnection().getOutputStream(), true).println("Overlord: Going down for system halt NOW!");
-                        } synchronized (this) {
-                            new PrintWriter(m.getClientConnection().getOutputStream(), true).println("-1028310479");
-                        }
-                    }
-                    Singleton.removeAll();
-                    System.out.println("All clients terminated.");
-                }
-                else if(input.startsWith("!")) {
-                    for(UserModel m : Singleton.getThreads()) {
-                        new PrintWriter(m.getClientConnection().getOutputStream(), true).println("Overlord: " + input.replaceFirst("!", ""));
-                    }
+            while ((input = stdIn.readLine()) != null) {
+                if (input.equals("killall")) {
+                    killAllClients();
+                } else if (input.startsWith("!")) {
+                    broadcast();
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void killAllClients() throws IOException {
+        for (UserModel m : Singleton.getThreads()) {
+            synchronized (this) {
+                new PrintWriter(m.getClientConnection().getOutputStream(), true).println("Overlord: Going down for system halt NOW!");
+            }
+            synchronized (this) {
+                new PrintWriter(m.getClientConnection().getOutputStream(), true).println("-1028310479");
+            }
+        }
+        Singleton.removeAll();
+        System.out.println("All clients terminated.");
+    }
+
+    private void broadcast() throws IOException {
+        for (UserModel m : Singleton.getThreads()) {
+            new PrintWriter(m.getClientConnection().getOutputStream(), true).println("Overlord: " + input.replaceFirst("!", ""));
         }
     }
 }
